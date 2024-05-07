@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 """
-    Copyright (c) 2023 Penterep Security s.r.o.
+    Copyright (c) 2024 Penterep Security s.r.o.
 
-    ptmethod - HTTP methods testing tool
+    ptmethod - HTTP Methods Testing Tool
 
     ptmethods is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -32,15 +32,16 @@ from ptlibs import ptjsonlib, ptmisclib, ptnethelper, ptprinthelper
 
 class PtMethods:
     def __init__(self, args):
-        self.ptjsonlib          = ptjsonlib.PtJsonLib()
-        self.headers            = ptnethelper.get_request_headers(args)
-        self.proxies            = {"http": args.proxy, "https": args.proxy}
-        self.use_json           = args.json
-        self.redirects          = args.redirects
-        self.cache              = args.cache
-        self.timeout            = args.timeout
-        self.show_headers       = args.show_headers
-        self.show_response      = args.show_response
+        self.ptjsonlib           = ptjsonlib.PtJsonLib()
+        self.headers             = ptnethelper.get_request_headers(args)
+        self.proxies             = {"http": args.proxy, "https": args.proxy}
+        self.use_json            = args.json
+        self.redirects           = args.redirects
+        self.cache               = args.cache
+        self.timeout             = args.timeout
+        self.show_headers        = args.show_headers
+        self.show_response       = args.show_response
+        self.check_basic_methods = args.check_basic_methods
 
         try:
             self.url_list = ptmisclib.read_file(args.file) if args.file else args.url
@@ -51,13 +52,18 @@ class PtMethods:
                 self.ptjsonlib.end_error("Cannot test more than 1 URL while --json parameter is present", self.use_json)
 
     def run(self):
-        """Main method"""
         for index, url in enumerate(self.url_list):
             ptprinthelper.ptprint(f"Testing: {url}", "TITLE", not self.use_json, colortext=True)
             try:
                 self.port, url = self._parse_url(url)
-                self._run_tests(url)
-            except (ValueError, requests.exceptions.RequestException) as e:
+                options       = self._get_options(url)
+                methods       = self._check_methods(url)
+                connect_test  = self._test_connect_method(url)
+                proxy_test    = self._check_proxy_method(url)
+
+                self._print_results(url, options, methods, proxy_test, connect_test)
+
+            except (requests.exceptions.RequestException, ValueError) as e:
                 if len(self.url_list) > 1:
                     ptprinthelper.ptprint(f"Error: {e}", "ERROR", not self.use_json, end="\n\n" if not index+1 == len(self.url_list) else "\n")
                     continue
@@ -65,19 +71,8 @@ class PtMethods:
                     self.ptjsonlib.end_error(f"{e}", self.use_json)
 
         if self.use_json:
-            self.ptjsonlib.set_status("ok")
+            self.ptjsonlib.set_status("finished")
             ptprinthelper.ptprint(self.ptjsonlib.get_result_json(), "", self.use_json)
-
-    def _run_tests(self, url: str):
-        """Runs all the tests"""
-        try:
-            options       = self._get_options(url)
-            methods       = self._check_methods(url)
-            connect_test  = self._test_connect_method(url)
-            proxy_test    = self._check_proxy_method(url)
-            self._print_results(url, options, methods, proxy_test, connect_test)
-        except requests.exceptions.RequestException as e:
-            raise e
 
     def _test_connect_method(self, url):
         try:
@@ -109,7 +104,7 @@ class PtMethods:
             title = re.search(r"<title.*?>([\s\S]*?)</title>", response_localhost.text)
             if title:
                 title = title.groups()[0]
-            self.ptjsonlib.add_vulnerability("PTWVPROXY", request=response_dump["request"], response=response_dump["response"], note=f"Title of localhost when proxy is used: {title}")
+            self.ptjsonlib.add_vulnerability("PTWVPROXY", vulm_request=response_dump["request"], vuln_response=response_dump["response"], note=f"Title of localhost when proxy is used: {title}")
             return title
 
     def _get_options(self, url):
@@ -142,9 +137,18 @@ class PtMethods:
                 method_data["response"].append(response.text)
             if response.status_code < 400:
                 methods_result["available_methods"].append(method_data)
-                self.ptjsonlib.add_node(self.ptjsonlib.create_node_object("httpMethod", properties={"name": method, "httpMethodType": method}))
-                if method in ["TRACE"]:
-                    self.ptjsonlib.add_vulnerability("PTWVHTTPTRACE", request=response_dump["request"], response=response_dump["response"])
+
+                if self.use_json:
+                    if self.check_basic_methods:
+                        vuln_code_map = {"PUT": "PTV-WEB-HTTP-METPUT", "PATCH": "PTV-WEB-HTTP-METPTCH", "DELETE": "PTV-WEB-HTTP-METDEL", "OPTIONS": "PTV-WEB-HTTP-METOPT", "HEAD": "PTV-WEB-HTTP-METHEAD", "TRACE": "PTV-WEB-HTTP-METTRC", "DEBUG": "PTV-WEB-HTTP-METDBG", "FOO": "PTV-WEB-HTTP-METNON"}
+                        if vuln_code_map.get(method):
+                            self.ptjsonlib.add_vulnerability(vuln_code_map[method])
+                        self.handle_check_basic_methods(method)
+                    else:
+                        node = self.ptjsonlib.create_node_object("httpMethod", properties={"name": method, "httpMethodType": method})
+                        if method == "TRACE":
+                            node["vulnerabilities"].append({"vulnCode": "PTV-WEB-HTTP-METTRC"})
+                        self.ptjsonlib.add_node(node)
             else:
                 methods_result["not_available_methods"].append(method_data)
         ptprinthelper.ptprint(f"{' '*30}", "", self.use_json == False, end="\r")
@@ -215,12 +219,12 @@ def get_help():
     return [
         {"description": ["HTTP methods testing tool"]},
         {"usage": ["ptmethods <options>"]},
-        {"Tip": ["Optimally use this script against homepage, any image and sources protected by HTTP authentication"]},
+        {"Tip": ["Use this script against existing sources like homepages, images, or resources protected by HTTP authentication."]},
         {"usage_example": [
             "ptmethods -u https://www.example.com/image.png",
             "ptmethods -u https://www.example.com/index.php",
             "ptmethods -u https://www.example.com/index.php -c PHPSESSID=abcdef",
-            "ptmethods -f URL_list.txt",
+            "ptmethods -f urlList.txt",
         ]},
         {"options": [
             ["-u",  "--url",                    "<url>",            "Test specified URL"],
@@ -234,6 +238,7 @@ def get_help():
             ["-H",  "--headers",                "<header:value>",   "Set custom header(s)"],
             ["-r",  "--redirects",              "",                 "Follow redirects (default False)"],
             ["-c",  "--cache",                  "",                 "Cache requests (load from tmp in future)"],
+            ["-b",  "--check-basic-methods",    "",                 "Skip creating JSON nodes (used with --json option)"],
             ["-v",  "--version",                "",                 "Show script version and exit"],
             ["-h",  "--help",                   "",                 "Show this help message and exit"],
             ["-j",  "--json",                   "",                 "Output in JSON format"],
@@ -244,19 +249,20 @@ def get_help():
 def parse_args():
     parser = argparse.ArgumentParser(add_help=False, usage="ptmethods <options>")
     exclusive_group = parser.add_mutually_exclusive_group(required=True)
-    exclusive_group.add_argument("-u", "--url",    type=str, nargs="+")
-    exclusive_group.add_argument("-f", "--file",   type=str)
-    parser.add_argument("-p",  "--proxy",          type=str)
-    parser.add_argument("-ua", "--user-agent",     type=str, default="Penterep Tools")
-    parser.add_argument("-c",  "--cookie",         type=str, nargs="+")
-    parser.add_argument("-T",  "--timeout",        type=int, default=6)
-    parser.add_argument("-H",  "--headers",        type=ptmisclib.pairs, nargs="+")
-    parser.add_argument("-j",  "--json",           action="store_true")
-    parser.add_argument("-r",  "--redirects",      action="store_true")
-    parser.add_argument("-C",  "--cache",          action="store_true")
-    parser.add_argument("-sr", "--show-response",  action="store_true")
-    parser.add_argument("-sh", "--show-headers",   action="store_true")
-    parser.add_argument("-v",  "--version",        action="version", version=f"{SCRIPTNAME} {__version__}")
+    exclusive_group.add_argument("-u", "--url",         type=str, nargs="+")
+    exclusive_group.add_argument("-f", "--file",        type=str)
+    parser.add_argument("-p",  "--proxy",               type=str)
+    parser.add_argument("-ua", "--user-agent",          type=str, default="Penterep Tools")
+    parser.add_argument("-c",  "--cookie",              type=str, nargs="+")
+    parser.add_argument("-T",  "--timeout",             type=int, default=6)
+    parser.add_argument("-H",  "--headers",             type=ptmisclib.pairs, nargs="+")
+    parser.add_argument("-j",  "--json",                action="store_true")
+    parser.add_argument("-r",  "--redirects",           action="store_true")
+    parser.add_argument("-C",  "--cache",               action="store_true")
+    parser.add_argument("-b",  "--check-basic-methods", action="store_true")
+    parser.add_argument("-sr", "--show-response",       action="store_true")
+    parser.add_argument("-sh", "--show-headers",        action="store_true")
+    parser.add_argument("-v",  "--version",             action="version", version=f"{SCRIPTNAME} {__version__}")
 
     if len(sys.argv) == 1 or "-h" in sys.argv or "--help" in sys.argv:
         ptprinthelper.help_print(get_help(), SCRIPTNAME, __version__)

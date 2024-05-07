@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="ptmethods",
     version=__version__,
-    description="HTTP methods testing tool",
+    description="HTTP Methods Testing Tool",
     author="Penterep",
     author_email="info@penterep.com",
     url="https://www.penterep.com/",
@@ -20,9 +20,15 @@ setuptools.setup(
         "Topic :: Security",
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)"
     ],
-    python_requires='>=3.6',
-    install_requires=["ptlibs>=1,<2", "requests"],
+    python_requires='>=3.9',
+    install_requires=["ptlibs>=1.0.7,<2", "requests"],
     entry_points = {'console_scripts': ['ptmethods = ptmethods.ptmethods:main']},
     long_description=long_description,
     long_description_content_type="text/markdown",
+    project_urls = {
+    "homepage":   "https://www.penterep.com/",
+    "repository": "https://github.com/penterep/ptmethods",
+    "tracker":    "https://github.com/penterep/ptmethods/issues",
+    "changelog":  "https://github.com/penterep/ptmethods/blob/main/CHANGELOG.md",
+    }
 )

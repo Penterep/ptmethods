@@ -1,8 +1,7 @@
 [![penterepTools](https://www.penterep.com/external/penterepToolsLogo.png)](https://www.penterep.com/)
 
 
-# PTMETHODS
-> HTTP methods testing tool
+## PTMETHODS - HTTP Methods Testing Tool
 
 - Script retrieves methods offered by server from OPTIONS request
 - Script sends GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, TRACE, DEBUG, FOO headers and returns server response
@@ -14,19 +13,19 @@
 pip install ptmethods
 ```
 
-## Add to PATH
-If you cannot invoke the script in your terminal, its probably because its not in your PATH. Fix it by running commands below.
+## Adding to PATH
+If you're unable to invoke the script from your terminal, it's likely because it's not included in your PATH. You can resolve this issue by executing the following commands, depending on the shell you're using:
 
-> Add to PATH for Bash
+For Bash Users
 ```bash
 echo "export PATH=\"`python3 -m site --user-base`/bin:\$PATH\"" >> ~/.bashrc
 source ~/.bashrc
 ```
 
-> Add to PATH for ZSH
+For ZSH Users
 ```bash
-echo "export PATH=\"`python3 -m site --user-base`/bin:\$PATH\"" >> ~/.zshhrc
-source ~/.zshhrc
+echo "export PATH=\"`python3 -m site --user-base`/bin:\$PATH\"" >> ~/.zshrc
+source ~/.zshrc
 ```
 
 ## Usage examples
@@ -36,50 +35,36 @@ ptmethods -u https://www.example.com/
 ptmethods -u https://www.example.com/ -r
 ptmethods -u https://www.example.com/index.php -sr -sh
 ptmethods -u https://www.example.com/index.php -c PHPSESSID=abcdef
-ptmethods -f URL_list.txt
+ptmethods -f urlList.txt
 ```
 
 ## Options
 ```
--u   --url            <url>           Test specified URL
--f   --file           <file>          Load URLs from file
--sh  --show-headers                   Show response headers
--sr  --show-response                  Show response text
--p   --proxy          <proxy>         Set proxy (e.g. http://127.0.0.1:8080)
--T   --timeout                        Set timeout (default 10)
--c   --cookie         <cookie>        Set cookie
--ua  --user-agent     <ua>            Set User-Agent header
--H   --headers        <header:value>  Set custom header(s)
--r   --redirects                      Follow redirects (default False)
--c   --cache                          Cache requests (load from tmp in future)
--v   --version                        Show script version and exit
--h   --help                           Show this help message and exit
--j   --json                           Output in JSON format
+-u   --url                  <url>           Test specified URL
+-f   --file                 <file>          Load URLs from file
+-sh  --show-headers                         Show response headers
+-sr  --show-response                        Show response text
+-T   --timeout                              Set timeout (default 10)
+-p   --proxy                <proxy>         Set proxy (e.g. http://127.0.0.1:8080)
+-ua  --user-agent           <ua>            Set User-Agent header
+-c   --cookie               <cookie>        Set cookie
+-H   --headers              <header:value>  Set custom header(s)
+-r   --redirects                            Follow redirects (default False)
+-c   --cache                                Cache requests (load from tmp in future)
+-b   --check-basic-methods                  Skip creating JSON nodes (used with --json option)
+-v   --version                              Show script version and exit
+-h   --help                                 Show this help message and exit
+-j   --json                                 Output in JSON format
 ```
 
 ## Dependencies
 ```
-requests
 ptlibs
 ```
 
-## Version History
-```
-1.0.1
-    - Fix urllib3 error
-1.0.0
-    - Support for ptlibs v1.0.0
-    - Code refactorization
-0.0.2 - 0.0.4
-    - Implemented proxy and connect tests
-0.0.1 - 0.0.3
-    Alpha releases
-```
-
-
 ## License
 
-Copyright (c) 2023 Penterep Security s.r.o.
+Copyright (c) 2024 Penterep Security s.r.o.
 
 ptmethods is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
