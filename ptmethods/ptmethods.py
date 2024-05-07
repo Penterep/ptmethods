@@ -2,7 +2,7 @@
 """
     Copyright (c) 2024 Penterep Security s.r.o.
 
-    ptmethod - HTTP Methods Testing Tool
+    ptmethods - HTTP Methods Testing Tool
 
     ptmethods is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
