@@ -217,7 +217,7 @@ class PtMethods:
 
 def get_help():
     return [
-        {"description": ["HTTP methods testing tool"]},
+        {"description": ["HTTP Methods Testing Tool"]},
         {"usage": ["ptmethods <options>"]},
         {"Tip": ["Use this script against existing sources like homepages, images, or resources protected by HTTP authentication."]},
         {"usage_example": [
@@ -264,9 +264,15 @@ def parse_args():
     parser.add_argument("-sh", "--show-headers",        action="store_true")
     parser.add_argument("-v",  "--version",             action="version", version=f"{SCRIPTNAME} {__version__}")
 
+    parser.add_argument("--socket-address",          type=str, default=None)
+    parser.add_argument("--socket-port",             type=str, default=None)
+    parser.add_argument("--process-ident",           type=str, default=None)
+
+
     if len(sys.argv) == 1 or "-h" in sys.argv or "--help" in sys.argv:
         ptprinthelper.help_print(get_help(), SCRIPTNAME, __version__)
         sys.exit(0)
+
     args = parser.parse_args()
     ptprinthelper.print_banner(SCRIPTNAME, __version__, args.json, space=0)
     return args
