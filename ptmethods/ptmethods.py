@@ -56,10 +56,10 @@ class PtMethods:
             ptprinthelper.ptprint(f"Testing: {url}", "TITLE", not self.use_json, colortext=True)
             try:
                 self.port, url = self._parse_url(url)
-                options       = self._get_options(url)
-                methods       = self._check_methods(url)
-                connect_test  = self._test_connect_method(url)
-                proxy_test    = self._check_proxy_method(url)
+                options: list       = self._get_options(url)
+                methods: dict       = self._check_methods(url)
+                connect_test: bool  = self._check_connect_method(url)
+                proxy_test: bool    = self._check_proxy_method(url)
 
                 self._print_results(url, options, methods, proxy_test, connect_test)
 
@@ -74,7 +74,7 @@ class PtMethods:
             self.ptjsonlib.set_status("finished")
             ptprinthelper.ptprint(self.ptjsonlib.get_result_json(), "", self.use_json)
 
-    def _test_connect_method(self, url):
+    def _check_connect_method(self, url):
         try:
             response = self._get_response("https://www.example.com", "GET", proxies={"https": url+":"+self.port})
         except requests.RequestException as e:
@@ -82,29 +82,29 @@ class PtMethods:
         if re.search(r"<title>Example Domain</title>", response.text):
             try:
                 response_localhost = self._get_response("https://127.0.0.1", "GET", {"https": url+":"+self.port})
+                title = re.search(r"<title.*?>([\s\S]*?)</title>", response_localhost.text)
+                title = title.groups()[0] if title else title
+                return title
             except requests.RequestException as e:
                 title = "Error retrieving title from localhost"
                 return title
-            title = re.search(r"<title.*?>([\s\S]*?)</title>", response_localhost.text)
-            if title:
-                title = title.groups()[0]
-            return title
 
     def _check_proxy_method(self, url):
         try:
-            r, response_dump = self._get_response("http://www.example.com", "GET", {"http": url+":"+self.port}, dump_response=True)
+            r, response_dump = self._get_response(url="http://www.example.com", method="GET", proxies={"http": f"{url}:{self.port}"}, dump_response=True)
         except requests.RequestException as e:
             return False
+
         if re.search(r"<title>Example Domain</title>", r.text):
             try:
-                response_localhost = self._get_response("http://127.0.0.1", "GET", {"http": url+":"+self.port})
+                response_localhost = self._get_response("http://127.0.0.1", "GET", {"http": f"{url}:{self.port}"})
             except requests.RequestException as e:
                 title = "Error retrieving title from localhost"
                 return title
             title = re.search(r"<title.*?>([\s\S]*?)</title>", response_localhost.text)
             if title:
                 title = title.groups()[0]
-            self.ptjsonlib.add_vulnerability("PTWVPROXY", vulm_request=response_dump["request"], vuln_response=response_dump["response"], note=f"Title of localhost when proxy is used: {title}")
+            self.ptjsonlib.add_vulnerability("PTWVPROXY", vuln_request=response_dump["request"], vuln_response=response_dump["response"], note=f"Title of localhost when proxy is used: {title}")
             return title
 
     def _get_options(self, url):

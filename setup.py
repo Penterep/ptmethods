@@ -21,7 +21,7 @@ setuptools.setup(
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)"
     ],
     python_requires='>=3.9',
-    install_requires=["ptlibs>=1.0.7,<2"],
+    install_requires=["ptlibs>=1.0.15,<2"],
     entry_points = {'console_scripts': ['ptmethods = ptmethods.ptmethods:main']},
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -29,6 +29,5 @@ setuptools.setup(
     "homepage":   "https://www.penterep.com/",
     "repository": "https://github.com/penterep/ptmethods",
     "tracker":    "https://github.com/penterep/ptmethods/issues",
-    "changelog":  "https://github.com/penterep/ptmethods/blob/main/CHANGELOG.md",
     }
 )
