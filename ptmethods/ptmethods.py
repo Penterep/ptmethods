@@ -42,7 +42,6 @@ class PtMethods:
         self.show_headers        = args.show_headers
         self.show_response       = args.show_response
         self.check_basic_methods = args.check_basic_methods
-
         try:
             self.url_list = ptmisclib.read_file(args.file) if args.file else args.url
         except FileNotFoundError:
@@ -55,7 +54,7 @@ class PtMethods:
         for index, url in enumerate(self.url_list):
             ptprinthelper.ptprint(f"Testing: {url}", "TITLE", not self.use_json, colortext=True)
             try:
-                self.port, url = self._parse_url(url)
+                self.port, url      = self._parse_url(url)
                 options: list       = self._get_options(url)
                 methods: dict       = self._check_methods(url)
                 connect_test: bool  = self._check_connect_method(url)
@@ -63,7 +62,7 @@ class PtMethods:
 
                 self._print_results(url, options, methods, proxy_test, connect_test)
 
-            except (requests.exceptions.RequestException, ValueError) as e:
+            except (requests.exceptions.RequestException, ValueError, Exception) as e:
                 if len(self.url_list) > 1:
                     ptprinthelper.ptprint(f"Error: {e}", "ERROR", not self.use_json, end="\n\n" if not index+1 == len(self.url_list) else "\n")
                     continue
@@ -209,7 +208,7 @@ class PtMethods:
         if ":" in o.netloc:
             split_obj = o.netloc.split(":")
             port = split_obj[-1]
-            o = o._replace(netloc=split_obj[0])
+            #o = o._replace(netloc=split_obj[0])
         else:
             port = "443" if o.scheme == "https" else "80"
         return port, urllib.parse.urlunparse(o)
