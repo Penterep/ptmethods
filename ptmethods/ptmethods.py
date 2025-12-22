@@ -28,33 +28,33 @@ import requests
 
 from _version import __version__
 from ptlibs import ptjsonlib, ptmisclib, ptnethelper, ptprinthelper
+from ptlibs.http import http_client
 
+from modules.helpers import Helpers
 
 class PtMethods:
     def __init__(self, args):
         self.ptjsonlib           = ptjsonlib.PtJsonLib()
-        self.headers             = ptnethelper.get_request_headers(args)
-        self.proxies             = {"http": args.proxy, "https": args.proxy}
-        self.use_json            = args.json
-        self.redirects           = args.redirects
-        self.cache               = args.cache
-        self.timeout             = args.timeout
+        self.args                = args
         self.show_headers        = args.show_headers
         self.show_response       = args.show_response
         self.check_basic_methods = args.check_basic_methods
+        self.http_client         = http_client.HttpClient(args, self.ptjsonlib)
+        self.helpers = Helpers(args, self.ptjsonlib, self.http_client)
+
         try:
             self.url_list = ptmisclib.read_file(args.file) if args.file else args.url
         except FileNotFoundError:
-            self.ptjsonlib.end_error("File not found", self.use_json)
+            self.ptjsonlib.end_error("File not found", self.args.json)
 
-        if len(self.url_list) > 1 and self.use_json:
-                self.ptjsonlib.end_error("Cannot test more than 1 URL while --json parameter is present", self.use_json)
+        if len(self.url_list) > 1 and self.args.json:
+            self.ptjsonlib.end_error("Cannot test more than 1 URL while --json parameter is present", self.args.json)
 
     def run(self):
         for index, url in enumerate(self.url_list):
-            ptprinthelper.ptprint(f"Testing: {url}", "TITLE", not self.use_json, colortext=True)
             try:
                 self.port, url      = self._parse_url(url)
+                ptprinthelper.ptprint(f"Testing: {url}", "TITLE", not self.args.json, colortext=True)
                 options: list       = self._get_options(url)
                 methods: dict       = self._check_methods(url)
                 connect_test: bool  = self._check_connect_method(url)
@@ -64,14 +64,14 @@ class PtMethods:
 
             except (requests.exceptions.RequestException, ValueError, Exception) as e:
                 if len(self.url_list) > 1:
-                    ptprinthelper.ptprint(f"Error: {e}", "ERROR", not self.use_json, end="\n\n" if not index+1 == len(self.url_list) else "\n")
+                    ptprinthelper.ptprint(f"Error: {e}", "ERROR", not self.args.json, end="\n\n" if not index+1 == len(self.url_list) else "\n")
                     continue
                 else:
-                    self.ptjsonlib.end_error(f"{e}", self.use_json)
+                    self.ptjsonlib.end_error(f"{e}", self.args.json)
 
-        if self.use_json:
+        if self.args.json:
             self.ptjsonlib.set_status("finished")
-            ptprinthelper.ptprint(self.ptjsonlib.get_result_json(), "", self.use_json)
+            ptprinthelper.ptprint(self.ptjsonlib.get_result_json(), "", self.args.json)
 
     def _check_connect_method(self, url):
         try:
@@ -121,7 +121,7 @@ class PtMethods:
         """Check url for available methods"""
         methods_result = {"available_methods": [], "not_available_methods": []}
         for method in ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD", "TRACE", "DEBUG", "FOO"]:
-            ptprinthelper.ptprint(f"Testing method: {method} {' '*10}", "TITLE", self.use_json == False, end="\r")
+            ptprinthelper.ptprint(f"Testing method: {method} {' '*10}", "TITLE", self.args.json == False, end="\r")
             try:
                 response, response_dump = self._get_response(url, method, dump_response=True)
             except requests.RequestException as e:
@@ -137,7 +137,7 @@ class PtMethods:
             if response.status_code < 400:
                 methods_result["available_methods"].append(method_data)
 
-                if self.use_json:
+                if self.args.json:
                     if self.check_basic_methods:
                         vuln_code_map = {"PUT": "PTV-WEB-HTTP-METPUT", "PATCH": "PTV-WEB-HTTP-METPTCH", "DELETE": "PTV-WEB-HTTP-METDEL", "OPTIONS": "PTV-WEB-HTTP-METOPT", "HEAD": "PTV-WEB-HTTP-METHEAD", "TRACE": "PTV-WEB-HTTP-METTRC", "DEBUG": "PTV-WEB-HTTP-METDBG", "FOO": "PTV-WEB-HTTP-METNON"}
                         if vuln_code_map.get(method):
@@ -150,55 +150,55 @@ class PtMethods:
                         self.ptjsonlib.add_node(node)
             else:
                 methods_result["not_available_methods"].append(method_data)
-        ptprinthelper.ptprint(f"{' '*30}", "", self.use_json == False, end="\r")
+        ptprinthelper.ptprint(f"{' '*30}", "", self.args.json == False, end="\r")
 
         return methods_result
 
     def _print_results(self, url, options, methods, proxy_method, connect_method):
-        ptprinthelper.ptprint(f"Response for OPTIONS: {', '.join(options)}", "INFO", self.use_json == False)
+        ptprinthelper.ptprint(f"Response for OPTIONS: {', '.join(options)}", "INFO", self.args.json == False)
 
         for key, value in methods.items():
-            ptprinthelper.ptprint(f"{key.capitalize().replace('_',' ')}:", "INFO", self.use_json == False, newline_above=True)
+            ptprinthelper.ptprint(f"{key.capitalize().replace('_',' ')}:", "INFO", self.args.json == False, newline_above=True)
             if not value:
-                ptprinthelper.ptprint(f"    None", "", self.use_json == False)
+                ptprinthelper.ptprint(f"    None", "", self.args.json == False)
             for dictionary in value:
-                ptprinthelper.ptprint(f"    {dictionary['method']}{' '*(9-len(dictionary['method']))}[{dictionary['status']}]", "", self.use_json == False, "")
+                ptprinthelper.ptprint(f"    {dictionary['method']}{' '*(9-len(dictionary['method']))}[{dictionary['status']}]", "", self.args.json == False, "")
                 if dictionary["location"]:
-                    ptprinthelper.ptprint(f"        -> {dictionary['location']}", "", self.use_json == False)
+                    ptprinthelper.ptprint(f"        -> {dictionary['location']}", "", self.args.json == False)
                 else:
-                    ptprinthelper.ptprint(f" ", "", self.use_json == False, end="\n")
+                    ptprinthelper.ptprint(f" ", "", self.args.json == False, end="\n")
                 if self.show_headers:
                     for header, value in dictionary["headers"][0].items():
-                        ptprinthelper.ptprint(f'      {header} : {value}', 'ADDITIONS', self.use_json == False, colortext=True)
+                        ptprinthelper.ptprint(f'      {header} : {value}', 'ADDITIONS', self.args.json == False, colortext=True)
                 if self.show_headers and self.show_response:
-                    ptprinthelper.ptprint(f" ", "", self.use_json == False)
+                    ptprinthelper.ptprint(f" ", "", self.args.json == False)
                 if self.show_response:
-                    ptprinthelper.ptprint(f'{"".join(dictionary["response"])}', 'ADDITIONS', self.use_json == False, colortext=True)
+                    ptprinthelper.ptprint(f'{"".join(dictionary["response"])}', 'ADDITIONS', self.args.json == False, colortext=True)
 
-        ptprinthelper.ptprint(f" ", "", self.use_json == False)
+        ptprinthelper.ptprint(f" ", "", self.args.json == False)
         if proxy_method:
-            ptprinthelper.ptprint(f"Proxy mode is allowed", "VULN", self.use_json == False)
-            ptprinthelper.ptprint(f"Title of localhost via proxy: {proxy_method}", "VULN", self.use_json == False)
+            ptprinthelper.ptprint(f"Proxy mode is allowed", "VULN", self.args.json == False)
+            ptprinthelper.ptprint(f"Title of localhost via proxy: {proxy_method}", "VULN", self.args.json == False)
         else:
-            ptprinthelper.ptprint(f"Proxy mode is not allowed", "NOTVULN", self.use_json == False)
+            ptprinthelper.ptprint(f"Proxy mode is not allowed", "NOTVULN", self.args.json == False)
 
         if connect_method:
-            ptprinthelper.ptprint(f"CONNECT method at port {self.port} is allowed", "VULN", self.use_json == False)
-            ptprinthelper.ptprint(f"Title of localhost via CONNECT method: {connect_method}", "VULN", self.use_json == False)
+            ptprinthelper.ptprint(f"CONNECT method at port {self.port} is allowed", "VULN", self.args.json == False)
+            ptprinthelper.ptprint(f"Title of localhost via CONNECT method: {connect_method}", "VULN", self.args.json == False)
         else:
-            ptprinthelper.ptprint(f"CONNECT method at port {self.port} is not allowed", "NOTVULN", self.use_json == False)
+            ptprinthelper.ptprint(f"CONNECT method at port {self.port} is not allowed", "NOTVULN", self.args.json == False)
 
         if next((method for method in methods["available_methods"] if method['method'] == "TRACE"), None):
-            ptprinthelper.ptprint(f"TRACE method is allowed", "VULN", self.use_json == False)
+            ptprinthelper.ptprint(f"TRACE method is allowed", "VULN", self.args.json == False)
 
         if len(self.url_list) > 1 and not url == self.url_list[-1]:
-            ptprinthelper.ptprint(f" ", "", self.use_json == False)
+            ptprinthelper.ptprint(f" ", "", self.args.json == False)
 
     def _get_response(self, url, method, proxies=None, dump_response=False):
         """Retrieve response"""
         if proxies is None:
-            proxies = self.proxies
-        return ptmisclib.load_url_from_web_or_temp(url, method=method, headers=self.headers, proxies=proxies, timeout=self.timeout, redirects=self.redirects, verify=False, cache=self.cache, dump_response=dump_response)
+            proxies = self.args.proxies
+        return ptmisclib.load_url_from_web_or_temp(url, method=method, headers=self.args.headers, proxies=proxies, timeout=self.args.timeout, redirects=self.args.redirects, verify=False, cache=self.args.cache, dump_response=dump_response)
 
     def _parse_url(self, url):
         """Validates url, returns port and url"""
@@ -211,6 +211,12 @@ class PtMethods:
             #o = o._replace(netloc=split_obj[0])
         else:
             port = "443" if o.scheme == "https" else "80"
+
+        # check if path to valid file, else get static file from response
+        if not o.path or o.path == "/" or not os.path.basename(o.path).count('.'):
+            response = self.helpers._find_static_resource(url)
+            return port, response.url if response else url
+
         return port, urllib.parse.urlunparse(o)
 
 
@@ -232,7 +238,7 @@ def get_help():
             ["-sr", "--show-response",          "",                 "Show response text"],
             ["-T",  "--timeout",                "",                 "Set timeout (default 10)"],
             ["-p",  "--proxy",                  "<proxy>",          "Set proxy (e.g. http://127.0.0.1:8080)"],
-            ["-ua", "--user-agent",             "<ua>",             "Set User-Agent header"],
+            ["-a",  "--user-agent",             "<a>",              "Set User-Agent header"],
             ["-c",  "--cookie",                 "<cookie>",         "Set cookie"],
             ["-H",  "--headers",                "<header:value>",   "Set custom header(s)"],
             ["-r",  "--redirects",              "",                 "Follow redirects (default False)"],
@@ -251,7 +257,7 @@ def parse_args():
     exclusive_group.add_argument("-u", "--url",         type=str, nargs="+")
     exclusive_group.add_argument("-f", "--file",        type=str)
     parser.add_argument("-p",  "--proxy",               type=str)
-    parser.add_argument("-ua", "--user-agent",          type=str, default="Penterep Tools")
+    parser.add_argument("-a", "--user-agent",           type=str, default="Penterep Tools")
     parser.add_argument("-c",  "--cookie",              type=str, nargs="+")
     parser.add_argument("-T",  "--timeout",             type=int, default=6)
     parser.add_argument("-H",  "--headers",             type=ptmisclib.pairs, nargs="+")
@@ -273,6 +279,9 @@ def parse_args():
         sys.exit(0)
 
     args = parser.parse_args()
+    args.headers = ptnethelper.get_request_headers(args)
+    args.proxies = {"http": args.proxy, "https": args.proxy}
+
     ptprinthelper.print_banner(SCRIPTNAME, __version__, args.json, space=0)
     return args
 
