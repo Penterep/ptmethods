@@ -23,6 +23,7 @@ import argparse
 import re
 import sys; sys.path.append(__file__.rsplit("/", 1)[0])
 import urllib
+import os 
 
 import requests
 
