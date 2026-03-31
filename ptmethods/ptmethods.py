@@ -198,7 +198,7 @@ class PtMethods:
     def _get_response(self, url, method, proxies=None, dump_response=False):
         """Retrieve response"""
         if proxies is None:
-            proxies = self.args.proxies
+            proxies = self.args.proxy
         return ptmisclib.load_url_from_web_or_temp(url, method=method, headers=self.args.headers, proxies=proxies, timeout=self.args.timeout, redirects=self.args.redirects, verify=False, cache=self.args.cache, dump_response=dump_response)
 
     def _parse_url(self, url):
@@ -281,7 +281,7 @@ def parse_args():
 
     args = parser.parse_args()
     args.headers = ptnethelper.get_request_headers(args)
-    args.proxies = {"http": args.proxy, "https": args.proxy}
+    args.proxy = {"http": args.proxy, "https": args.proxy}
 
     ptprinthelper.print_banner(SCRIPTNAME, __version__, args.json, space=0)
     return args
