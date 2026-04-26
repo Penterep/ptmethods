@@ -121,7 +121,7 @@ class PtMethods:
     def _check_methods(self, url):
         """Check url for available methods"""
         methods_result = {"available_methods": [], "not_available_methods": []}
-        for method in ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD", "TRACE", "DEBUG", "FOO"]:
+        for method in ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD", "TRACE", "PROPFIND", "DEBUG", "FOO"]:
             ptprinthelper.ptprint(f"Testing method: {method} {' '*10}", "TITLE", self.args.json == False, end="\r")
             try:
                 response, response_dump = self._get_response(url, method, dump_response=True)
