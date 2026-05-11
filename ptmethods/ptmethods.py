@@ -189,6 +189,9 @@ class PtMethods:
         else:
             ptprinthelper.ptprint(f"CONNECT method at port {self.port} is not allowed", "NOTVULN", self.args.json == False)
 
+        if next((method for method in methods["available_methods"] if method['method'] == "PROPFIND"), None):
+            ptprinthelper.ptprint("The PROPFIND method is allowed, which indicates that WebDAV is enabled.", "WARNING", self.args.json == False)
+
         if next((method for method in methods["available_methods"] if method['method'] == "TRACE"), None):
             ptprinthelper.ptprint(f"TRACE method is allowed", "VULN", self.args.json == False)
 
